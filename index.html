@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharmaceutical Inventory Scanner PoC</title>
+    <!-- Link to CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!--Dynamsoft Barcode Reader SDk-->
+    <script src="https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.20/dist/dbr.js"></script>
+</head>
+<body>
+    <h1>Pharmaceutical Inventory Scanner PoC</h1>
+
+    <!-- Webcam and snapshot area -->
+    <div id="scanner-container">
+        <h3>Scan Barcode</h3>
+        <div id="camera-container">
+            <video id="camera" autoplay playsinline muted></video>
+            <div id="text-overlay"></div>
+            <canvas id="snapshot" style="display: none;"></canvas>
+        </div>
+        <button id="start-scanning">Start Scanning</button>
+        <button id="stop-scanning" disabled>Stop Scanning</button>
+    </div>
+
+    <!-- Action buttons -->
+    <div id="actions">
+        <button id="send-to-sheets">Send to Google Sheets</button>
+        <button id="verify-items">Verify Items</button>
+    </div>
+
+    <!-- Notifications -->
+    <div id="notifications"></div>
+
+    <!-- Link to JavaScript -->
+    <script src="script.js"></script>
+    <script src="https://unpkg.com/@ericblade/quagga2/dist/quagga.js"></script>
+
+</body>
+</html>
