@@ -55,7 +55,7 @@ async function initializeDynamsoft() {
         if (!Dynamsoft || !Dynamsoft.DBR) {
             throw new Error("Dynamsoft SDK not loaded. Check if dbr.js is accessible.");
         }
-        Dynamsoft.DBR.BarcodeReader.license = 'YOUR_DYNAMSOFT_LICENSE_KEY';
+        Dynamsoft.DBR.BarcodeReader.license = 'DLS2eyJoYW5kc2hha2VDb2RlIjoiMTA0MDEwMTA3LVRYbFhaV0pRY205cSIsIm1haW5TZXJ2ZXJVUkwiOiJodHRwczovL21kbHMuZHluYW1zb2Z0b25saW5lLmNvbSIsIm9yZ2FuaXphdGlvbklEIjoiMTA0MDEwMTA3Iiwic3RhbmRieVNlcnZlclVSTCI6Imh0dHBzOi8vc2Rscy5keW5hbXNvZnRvbmxpbmUuY29tIiwiY2hlY2tDb2RlIjozOTEyNzM1NDh9';
         await Dynamsoft.DBR.BarcodeReader.loadWasm();
         barcodeReaderInstance = await Dynamsoft.DBR.BarcodeReader.createInstance();
         appendNotification("Dynamsoft: BarcodeReader instance created.", "grey");
