@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.20/dist/dbr.js"></script>
 </head>
 <body>
-    <h1>Pharmaceutical Inventory Scanner PoC</h1>
+    <h1>Pharmaceutical Inventory Scanner POC</POrtal>C</h1>
 
     <!-- Webcam and snapshot area -->
     <div id="scanner-container">
@@ -24,6 +24,12 @@
         <button id="start-scanning">Start Scanning</button>
         <button id="stop-scanning" disabled>Stop Scanning</button>
     </div>
+    
+    <div id="invoice-input-container">
+        <label for="invoice-id-input">Invoice ID:</label>
+        <input type="text" id="invoice-id-input" value="INV001">
+    </div>
+
 
     <!-- Action buttons -->
     <div id="actions">
