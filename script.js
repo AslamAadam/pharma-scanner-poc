@@ -60,38 +60,97 @@ function appendNotification(message, color = 'black') {
 }
 
 // Initialize Dynamsoft Barcode Reader
+// Initialize Dynamsoft Barcode Reader
 async function initializeDynamsoft() {
-    console.log("Attempting Dynamsoft initialization....");
+    console.log("Attempting Dynamsoft initialization (modifying fetched settings object)...");
+    dynamsoftInitialized = false; // Initialize to false
+
     try {
         if (!Dynamsoft || !Dynamsoft.DBR) {
             throw new Error("Dynamsoft SDK not loaded. Check if dbr.js is accessible.");
         }
         Dynamsoft.DBR.BarcodeReader.license = 'DLS2eyJoYW5kc2hha2VDb2RlIjoiMTA0MDEwMTA3LVRYbFhaV0pRY205cSIsIm1haW5TZXJ2ZXJVUkwiOiJodHRwczovL21kbHMuZHluYW1zb2Z0b25saW5lLmNvbSIsIm9yZ2FuaXphdGlvbklEIjoiMTA0MDEwMTA3Iiwic3RhbmRieVNlcnZlclVSTCI6Imh0dHBzOi8vc2Rscy5keW5hbXNvZnRvbmxpbmUuY29tIiwiY2hlY2tDb2RlIjozOTEyNzM1NDh9';
+        
+        appendNotification("Dynamsoft: Loading WASM...", "grey");
         await Dynamsoft.DBR.BarcodeReader.loadWasm();
+        appendNotification("Dynamsoft: WASM loaded.", "grey");
+
+        appendNotification("Dynamsoft: Creating instance...", "grey");
         barcodeReaderInstance = await Dynamsoft.DBR.BarcodeReader.createInstance();
-        //appendNotification("Dynamsoft: BarcodeReader instance created.", "grey");
+        appendNotification("Dynamsoft: BarcodeReader instance created.", "grey");
 
-        //appendNotification("Dynamsoft: Getting current runtime settings...", "grey");
-        let currentSettings = await barcodeReaderInstance.getRuntimeSettings();
-        //appendNotification("Dynamsoft: Current settings fetched. Modifying...", "grey");
+        // --- Get and Modify Settings Object ---
+        appendNotification("Dynamsoft: Getting current runtime settings...", "grey");
+        let settings = await barcodeReaderInstance.getRuntimeSettings();
+        appendNotification("Dynamsoft: Current settings fetched. Modifying...", "grey");
+        console.log("Original Dynamsoft Settings Object:", JSON.parse(JSON.stringify(settings))); // Log a CLONE for inspection
 
-        currentSettings.barcodeFormatIds = Dynamsoft.DBR.EnumBarcodeFormat.BF_DATAMATRIX | Dynamsoft.DBR.EnumBarcodeFormat.BF_EAN_13;
-        currentSettings.expectedBarcodesCount = 0;
+        // 1. Basic, known working settings (these should be direct properties)
+        settings.barcodeFormatIds = Dynamsoft.DBR.EnumBarcodeFormat.BF_DATAMATRIX |
+                                  Dynamsoft.DBR.EnumBarcodeFormat.BF_EAN_13 |
+                                  Dynamsoft.DBR.EnumBarcodeFormat.BF_QR_CODE; // Include QR
+        settings.expectedBarcodesCount = 5; // Start with a moderate number for multi-scan
 
-        //appendNotification("Dynamsoft: Applying updated settings...", "grey");
-        await barcodeReaderInstance.updateRuntimeSettings(currentSettings);
+        // 2. Cautiously try to add other parameters if they exist as direct properties
+        //    or known nested properties on the 'settings' object.
+        //    Check the console.log output of 'settings' to see its structure.
 
-        dynamsoftInitialized = true;
-        appendNotification("Dynamsoft: Initialized SUCCESSFULLY (with custom settings applied correctly).", "blue");
+        if (settings.hasOwnProperty('maxAlgorithmThreadCount')) {
+            settings.maxAlgorithmThreadCount = 1; // Try 1 for stability first
+            // appendNotification("Dynamsoft: Set maxAlgorithmThreadCount to 1", "grey");
+        }
 
-    } catch (error) {
-        console.error("Error initializing Dynamsoft:", error);
-        let errMsg = `Error initializing Dynamsoft: ${error.message}`;
+        if (settings.hasOwnProperty('deblurLevel')) {
+            settings.deblurLevel = 0; // Start with deblur off or very low (e.g., 1 or 2)
+            // appendNotification("Dynamsoft: Set deblurLevel to 0", "grey");
+        }
+
+        // For FurtherModes, it's tricky if they are not direct.
+        // If console.log(settings) shows a 'furtherModes' object:
+        if (settings.furtherModes) {
+            // appendNotification("Dynamsoft: Modifying furtherModes...", "grey");
+            if (settings.furtherModes.hasOwnProperty('localizationModes')) {
+                 settings.furtherModes.localizationModes = [
+                     Dynamsoft.DBR.EnumLocalizationMode.LM_STATISTICS, // Good for dense
+                     Dynamsoft.DBR.EnumLocalizationMode.LM_CONNECTED_BLOCKS
+                     // Dynamsoft.DBR.EnumLocalizationMode.LM_SCAN_DIRECTLY // Keep it simpler initially
+                 ];
+            }
+            if (settings.furtherModes.hasOwnProperty('grayscaleTransformationModes')) {
+                settings.furtherModes.grayscaleTransformationModes = [
+                    Dynamsoft.DBR.EnumGrayscaleTransformationMode.GTM_ORIGINAL,
+                    Dynamsoft.DBR.EnumGrayscaleTransformationMode.GTM_INVERTED
+                ];
+            }
+            // Add other furtherModes one by one, checking the structure from console.log(settings)
+        }
+
+        appendNotification("Dynamsoft: Applying modified settings object...", "grey");
+        await barcodeReaderInstance.updateRuntimeSettings(settings); // Pass the modified object
+        appendNotification("Dynamsoft: Modified settings object applied successfully.", "blue");
+        dynamsoftInitialized = true; // Set to true because settings (even if basic) were applied
+
+    } catch (error) { // This catch handles errors from createInstance, loadWasm, or updateRuntimeSettings
+        console.error("Error during Dynamsoft initialization/settings:", error);
+        let errMsg = `Dynamsoft Init/Settings Error: ${error.message}`;
         if (error.code) errMsg += ` (Code: ${error.code})`;
         appendNotification(errMsg, "red");
-        dynamsoftInitialized = false;
+
+        // If barcodeReaderInstance was created but settings failed, we might still try to use it with defaults.
+        if (barcodeReaderInstance && !dynamsoftInitialized) {
+            appendNotification("Dynamsoft: Failed to apply custom settings. SDK will use defaults.", "orange");
+            dynamsoftInitialized = true; // Allow scanning with defaults
+        } else if (!barcodeReaderInstance) {
+            dynamsoftInitialized = false; // Critical failure if instance itself couldn't be created
+        }
     }
-    console.log("initializeDynamsoft complete. dynamsoftInitialized is:", dynamsoftInitialized);
+
+    console.log("initializeDynamsoft complete. Final dynamsoftInitialized state is:", dynamsoftInitialized);
+    if (dynamsoftInitialized) {
+        appendNotification("Dynamsoft: Ready for scanning.", "blue");
+    } else {
+        appendNotification("Dynamsoft: Initialization FAILED. Barcode scanning may not work.", "red");
+    }
 }
 
 // Fetch inventory data on page load
